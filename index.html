@@ -870,7 +870,7 @@ function roleClass(r){
   return'r-ot';
 }
 const DEF_SCHOOLS=Array.from({length:12},(_,i)=>`학교${i+1}`);
-const DEF_CHAPTERS=Array.from({length:12},(_,i)=>`${i+1}강`);
+const DEF_CHAPTERS=Array.from({length:20},(_,i)=>`${i+1}강`);
 function getChapters(school){
   if(S.settings.schoolChapters&&S.settings.schoolChapters[school]&&S.settings.schoolChapters[school].length>0)
     return S.settings.schoolChapters[school];
@@ -879,8 +879,16 @@ function getChapters(school){
 function initSchoolChapters(){
   if(!S.settings.schoolChapters)S.settings.schoolChapters={};
   S.settings.schools.forEach(nm=>{
-    if(!S.settings.schoolChapters[nm]||S.settings.schoolChapters[nm].length===0)
-      S.settings.schoolChapters[nm]=[...(S.settings.chapters||DEF_CHAPTERS)];
+    // upgrade existing 12-chapter schools to 20
+    const cur=S.settings.schoolChapters[nm];
+    if(!cur||cur.length===0){
+      S.settings.schoolChapters[nm]=[...DEF_CHAPTERS];
+    } else if(cur.length<20){
+      // extend: keep existing names, add default names for new slots
+      const ext=[...cur];
+      for(let j=cur.length;j<20;j++)ext.push(DEF_CHAPTERS[j]);
+      S.settings.schoolChapters[nm]=ext;
+    }
   });
 }
 const SCH_COLORS=['#1B3A6B','#6B1B4A','#1B5E2A','#6B3B1B','#1B5B6B','#4A1B6B','#6B5A1B','#1B3D5F','#5F1B1B','#1B5B44','#3D1B6B','#6B4A1B'];
@@ -900,7 +908,9 @@ let qsSchools=[],qsChapterNums=[];
 ══════════════════════════ */
 function load(){
   try{const a=localStorage.getItem('mkq2_s');if(a)S.sentences=JSON.parse(a);}catch(e){}
-  try{const b=localStorage.getItem('mkq2_cfg');if(b){const c=JSON.parse(b);S.settings={...S.settings,...c};if(!S.settings.schools||S.settings.schools.length<1)S.settings.schools=[...DEF_SCHOOLS];if(!S.settings.chapters||S.settings.chapters.length<1)S.settings.chapters=[...DEF_CHAPTERS];}}catch(e){}
+  try{const b=localStorage.getItem('mkq2_cfg');if(b){const c=JSON.parse(b);S.settings={...S.settings,...c};if(!S.settings.schools||S.settings.schools.length<1)S.settings.schools=[...DEF_SCHOOLS];if(!S.settings.chapters||S.settings.chapters.length<1)S.settings.chapters=[...DEF_CHAPTERS];
+    // extend to 20 if older data had fewer
+    while(S.settings.chapters.length<20)S.settings.chapters.push(DEF_CHAPTERS[S.settings.chapters.length]);}}catch(e){}
 }
 function save(){
   localStorage.setItem('mkq2_s',JSON.stringify(S.sentences));
@@ -1248,7 +1258,11 @@ function saveNames(){
   const newSchoolChapters={};
   newSchools.forEach((nm,i)=>{
     const oldNm=oldSchools[i];
-    newSchoolChapters[nm]=S.settings.schoolChapters[oldNm]||[...DEF_CHAPTERS];
+    const oldChs=S.settings.schoolChapters[oldNm]||[...DEF_CHAPTERS];
+    // extend to 20 if needed
+    const extChs=[...oldChs];
+    for(let j=oldChs.length;j<20;j++)extChs.push(DEF_CHAPTERS[j]);
+    newSchoolChapters[nm]=extChs;
   });
   S.settings.schools=newSchools;
   S.settings.schoolChapters=newSchoolChapters;
